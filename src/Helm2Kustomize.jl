@@ -5,7 +5,9 @@ using OrderedCollections
 using Comonicon
 using UUIDs
 
-export Config, init, up, down, setconfig, getconfig, make_template_cmd, make_kustomize_paths
+export Config, setconfig, getconfig,
+    init, up, down,
+    make_template_cmd, make_kustomize_paths, create_kustomization
 
 Base.@kwdef mutable struct Config
     outdir::String = ""
@@ -128,7 +130,7 @@ end
 
 abspath(path...) = joinpath(CONFIG.tempdir, path...)
 
-function create(path, dirs=[])
+function create_kustomization(path, dirs=[])
     cd(path)
     @info "create kustomization: $(pwd())"
     if isfile(KUSTOMIZATION_FILENAME)
@@ -140,7 +142,7 @@ function create(path, dirs=[])
         return
     end
     root_kustomization = YAML.load_file(KUSTOMIZATION_FILENAME, dicttype=OrderedDict{String,Any})
-    root_kustomization["resources"] = map(x -> "./$x", dirs)
+    root_kustomization["resources"] = map(dir -> "./$dir", dirs)
     YAML.write_file(KUSTOMIZATION_FILENAME, root_kustomization)
 end
 
@@ -157,7 +159,7 @@ end
         up()
         run(make_template())
         for (path, dirs) in make_kustomize_paths()
-            create(path, dirs)
+            create_kustomization(path, dirs)
         end
         cd(rundir)
         mv_kustomize()

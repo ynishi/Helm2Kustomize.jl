@@ -90,4 +90,28 @@ using Test
             "testtemplatedir/template2" => ["template2_1"],
         ] == got
     end
+
+    @testset "create_kustomization" begin
+        path = "testcreatekustomization"
+        rm(path, force=true, recursive=true)
+        mkdir(path)
+        dirs = []
+        current = pwd()
+        create_kustomization(path, dirs)
+        cd(current)
+        filepath = joinpath(path, "kustomization.yaml")
+        @test isfile(filepath)
+        @test read("testkustomization.yaml") == read(filepath)
+
+        rm(path, force=true, recursive=true)
+        mkdir(path)
+        dirs2 = ["template1"]
+
+        create_kustomization(path, dirs2)
+        cd(current)
+        filepath = joinpath(path, "kustomization.yaml")
+        @test isfile(filepath)
+        @test read("testkustomization2.yaml") == read(filepath)
+        rm(path, force=true, recursive=true)
+    end
 end
