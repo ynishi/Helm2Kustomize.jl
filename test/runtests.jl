@@ -3,7 +3,7 @@ using Test
 
 @testset "Helm2Kustomize.jl" begin
     @testset "init" begin
-        repository = "group/repository"
+        repository = "repository/path_to_chart"
         outdir = "tmp_dir"
         version = "1.0.0"
         templatepath = "templatepath"
@@ -15,7 +15,7 @@ using Test
 
         @test "tmp_dir" == config.outdir
         @test "" != config.tempdir
-        @test "group/repository" == config.helm_repository
+        @test "repository/path_to_chart" == config.helm_repository
         @test "1.0.0" == config.helm_version
         @test 1 == length(keys(config.helm_options))
         @test "optionName" == config.helm_options[1][:name]
@@ -28,7 +28,7 @@ using Test
         @test config.iskeep
 
         config2 = init(repository, outdir, version, "", configfile, force, base, keep)
-        @test "$(config2.tempdir)/repository/templates" == config2.templatedir
+        @test "$(config2.tempdir)/path_to_chart/templates" == config2.templatedir
 
         config3 = init(repository, outdir, version, templatepath, "", false, false, false)
         @test 0 == length(keys(config3.helm_options))
@@ -68,13 +68,13 @@ using Test
 
     @testset "make_template_cmd" begin
         config = Config()
-        config.helm_repository = "group/repository"
+        config.helm_repository = "repository/path_to_chart"
         config.helm_version = "1.0.0"
         config.tempdir = "tempdir"
         config.helm_options = [Dict(:name => "--option-name", :value => "optionValue")]
         setconfig(config)
         got = make_template_cmd()
-        @test `helm template group/repository --version 1.0.0 --output-dir tempdir --option-name optionValue` == got
+        @test `helm template repository/path_to_chart --version 1.0.0 --output-dir tempdir --option-name optionValue` == got
     end
 
     @testset "make_kustomize_paths" begin
