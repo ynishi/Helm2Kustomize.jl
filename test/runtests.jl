@@ -13,26 +13,26 @@ using Test
         force = true
         config = init(repository, outdir, version, templatepath, configfile, force, base, keep)
 
-        @test config.outdir == "tmp_dir"
-        @test config.tempdir != ""
-        @test config.helm_repository == "group/repository"
-        @test config.helm_version == "1.0.0"
-        @test length(keys(config.helm_options)) == 1
-        @test config.helm_options[1][:name] == "optionName"
-        @test config.helm_options[1][:value] == "optionValue"
-        @test config.templatepath == "templatepath"
-        @test config.templatedir == "$(config.tempdir)/templatepath/templates"
-        @test length(keys(config.dict)) == 1
+        @test "tmp_dir" == config.outdir
+        @test "" != config.tempdir
+        @test "group/repository" == config.helm_repository
+        @test "1.0.0" == config.helm_version
+        @test 1 == length(keys(config.helm_options))
+        @test "optionName" == config.helm_options[1][:name]
+        @test "optionValue" == config.helm_options[1][:value]
+        @test "templatepath" == config.templatepath
+        @test "$(config.tempdir)/templatepath/templates" == config.templatedir
+        @test 1 == length(keys(config.dict))
         @test config.isforce
         @test config.isbase
         @test config.iskeep
 
         config2 = init(repository, outdir, version, "", configfile, force, base, keep)
-        @test config2.templatedir == "$(config2.tempdir)/repository/templates"
+        @test "$(config2.tempdir)/repository/templates" == config2.templatedir
 
         config3 = init(repository, outdir, version, templatepath, "", false, false, false)
-        @test length(keys(config3.helm_options)) == 0
-        @test length(keys(config3.dict)) == 0
+        @test 0 == length(keys(config3.helm_options))
+        @test 0 == length(keys(config3.dict))
         @test !config3.isforce
         @test !config3.isbase
         @test !config3.iskeep
@@ -73,7 +73,21 @@ using Test
         config.tempdir = "tempdir"
         config.helm_options = [Dict(:name => "--option-name", :value => "optionValue")]
         setconfig(config)
-        cmd = make_template_cmd()
-        @test cmd == `helm template 'group/repository' --version '1.0.0' --output-dir 'tempdir' '--option-name optionValue'`
+        got = make_template_cmd()
+        @test `helm template 'group/repository' --version '1.0.0' --output-dir 'tempdir' '--option-name optionValue'` == got
+    end
+
+    @testset "make_kustomize_paths" begin
+        config = Config()
+        config.templatedir = "testtemplatedir"
+        setconfig(config)
+        got = make_kustomize_paths()
+        @test [
+            "testtemplatedir/template1" => [],
+            "testtemplatedir/template2" => [],
+            "testtemplatedir" => ["template1", "template2"],
+            "testtemplatedir/template2/template2_1" => [],
+            "testtemplatedir/template2" => ["template2_1"],
+        ] == got
     end
 end
