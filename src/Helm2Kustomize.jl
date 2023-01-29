@@ -5,7 +5,7 @@ using OrderedCollections
 using Comonicon
 using UUIDs
 
-export Config, init
+export Config, init, up, down, setconfig, getconfig
 
 Base.@kwdef mutable struct Config
     outdir::String = ""
@@ -20,6 +20,10 @@ Base.@kwdef mutable struct Config
     isbase::Bool = false
     iskeep::Bool = false
 end
+
+setconfig(config) = global CONFIG = config
+getconfig() = CONFIG
+
 
 const KUSTOMIZATION_FILENAME = "kustomization.yaml"
 CONFIG = Config()
@@ -88,12 +92,16 @@ end
 
 function up()
     @debug "up"
-    mkpath(config.tempdir)
+    cleartemp()
+    mkpath(CONFIG.tempdir)
 end
 
 function down()
     @debug "down"
+    cleartemp()
 end
+
+cleartemp() = rm(CONFIG.tempdir, force=true, recursive=true)
 
 function make_template()
     @info "make_template"
@@ -109,14 +117,14 @@ end
 
 @main function helm2kustomize(repo::String; outdir::String="", version::String="", templatepath::String="", configfile::String="config.yaml", force::Bool=false, base::Bool=false, keep::Bool=false)
 
-    p = pwd()
+    rundir = pwd()
 
     try
         global CONFIG = init(repository, outdir, version, templatepath, configfile, force, base, keep)
         up()
         make_template()
         make_kustomize()
-        cd(p)
+        cd(rundir)
         mv_kustomize()
         @info "run, kustomize build $(CONFIG.outdir) | kubectl appy -f -"
         if !CONFIG.iskeep
