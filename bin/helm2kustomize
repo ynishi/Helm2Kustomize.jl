@@ -1,6 +1,6 @@
 #!/bin/sh
 
 BASEDIR=$(dirname "$(readlink -f -- "$0")")
-cd "$BASEDIR/../" || exit
+MAIN_JL="$BASEDIR/main.jl"
 
-julia bin/main.jl "$@"
+julia "$MAIN_JL" "$@"
