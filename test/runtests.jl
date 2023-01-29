@@ -65,4 +65,15 @@ using Test
         @test !isdir(config.tempdir)
         @test !isfile(config.tempdir)
     end
+
+    @testset "make_template_cmd" begin
+        config = Config()
+        config.helm_repository = "group/repository"
+        config.helm_version = "1.0.0"
+        config.tempdir = "tempdir"
+        config.helm_options = [Dict(:name => "--option-name", :value => "optionValue")]
+        setconfig(config)
+        cmd = make_template_cmd()
+        @test cmd == `helm template 'group/repository' --version '1.0.0' --output-dir 'tempdir' '--option-name optionValue'`
+    end
 end

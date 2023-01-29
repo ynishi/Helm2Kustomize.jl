@@ -5,7 +5,7 @@ using OrderedCollections
 using Comonicon
 using UUIDs
 
-export Config, init, up, down, setconfig, getconfig
+export Config, init, up, down, setconfig, getconfig, make_template_cmd
 
 Base.@kwdef mutable struct Config
     outdir::String = ""
@@ -103,9 +103,13 @@ end
 
 cleartemp() = rm(CONFIG.tempdir, force=true, recursive=true)
 
-function make_template()
+function make_template_cmd()
     @info "make_template"
+    options = make_options(CONFIG.helm_options)
+    `helm template $(CONFIG.helm_repository) --version $(CONFIG.helm_version) --output-dir $(CONFIG.tempdir) $options`
 end
+
+make_options(options) = join(map(option -> "$(option[:name]) $(option[:value])", options), " ")
 
 function make_kustomize()
     @info "make_kustomize"
@@ -122,7 +126,7 @@ end
     try
         global CONFIG = init(repository, outdir, version, templatepath, configfile, force, base, keep)
         up()
-        make_template()
+        run(make_template())
         make_kustomize()
         cd(rundir)
         mv_kustomize()
