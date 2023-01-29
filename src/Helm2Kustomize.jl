@@ -7,7 +7,8 @@ using UUIDs
 
 export Config, setconfig, getconfig,
     init, up, down,
-    make_template_cmd, make_kustomize_paths, create_kustomization
+    make_template_cmd, make_kustomize_paths, create_kustomization, cp_kustomize,
+    helm2kustomize
 
 Base.@kwdef mutable struct Config
     outdir::String = ""
@@ -29,6 +30,21 @@ getconfig() = CONFIG
 
 const KUSTOMIZATION_FILENAME = "kustomization.yaml"
 CONFIG = Config()
+
+function check()
+    for cmd in ["helm", "kustomize"]
+        checkcmd(cmd)
+    end
+end
+
+function checkcmd(cmd)
+    out = Pipe()
+    proc = run(pipeline(`$cmd --help`, stdout=out, stderr=out))
+    close(out.in)
+    if proc.exitcode != 0
+        throw(error("not found $cmd excutable"))
+    end
+end
 
 function init(
     repository::String,
@@ -61,7 +77,7 @@ function init(
 
     if !config.isforce &&
        (isdir(config.outdir) || isfile(config.outdir))
-        throw(error("out dir exists $OUT_DIR`"))
+        throw(error("out dir exists $config.outdir"))
     end
 
     config.helm_version = version
@@ -107,11 +123,10 @@ cleartemp() = rm(CONFIG.tempdir, force=true, recursive=true)
 
 function make_template_cmd()
     @info "make_template_cmd"
-    options = make_options(CONFIG.helm_options)
+    options = length(CONFIG.helm_options) > 0 ? reduce(vcat,
+        map(option -> [option[:name], option[:value]], CONFIG.helm_options)) : []
     `helm template $(CONFIG.helm_repository) --version $(CONFIG.helm_version) --output-dir $(CONFIG.tempdir) $options`
 end
-
-make_options(options) = join(map(option -> "$(option[:name]) $(option[:value])", options), " ")
 
 function make_kustomize_paths()
     @info "make_kustomize_paths"
@@ -146,23 +161,39 @@ function create_kustomization(path, dirs=[])
     YAML.write_file(KUSTOMIZATION_FILENAME, root_kustomization)
 end
 
-function mv_kustomize()
-    @info "mv_kustomize"
+function cp_kustomize()
+    @info "cp_kustomize"
+    if !CONFIG.isforce && isdir(CONFIG.outdir)
+        throw(error("out dir is exist"))
+    end
+    rm(CONFIG.outdir, force=true, recursive=true)
+    todir = CONFIG.isbase ? joinpath(CONFIG.outdir, "base") : CONFIG.outdir
+    mkpath(dirname(todir))
+    cp(CONFIG.templatedir, todir)
 end
 
-@main function helm2kustomize(repo::String; outdir::String="", version::String="", templatepath::String="", configfile::String="config.yaml", force::Bool=false, base::Bool=false, keep::Bool=false)
+function helm2kustomize(
+    repository::String;
+    outdir::String="",
+    version::String="",
+    templatepath::String="",
+    configfile::String="config.yaml",
+    force::Bool=false,
+    base::Bool=false,
+    keep::Bool=false
+)
 
     rundir = pwd()
-
     try
+        check()
         global CONFIG = init(repository, outdir, version, templatepath, configfile, force, base, keep)
         up()
-        run(make_template())
+        run(make_template_cmd())
         for (path, dirs) in make_kustomize_paths()
             create_kustomization(path, dirs)
         end
         cd(rundir)
-        mv_kustomize()
+        cp_kustomize()
         @info "run, kustomize build $(CONFIG.outdir) | kubectl appy -f -"
         if !CONFIG.iskeep
             down()

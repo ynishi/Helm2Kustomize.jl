@@ -74,7 +74,7 @@ using Test
         config.helm_options = [Dict(:name => "--option-name", :value => "optionValue")]
         setconfig(config)
         got = make_template_cmd()
-        @test `helm template 'group/repository' --version '1.0.0' --output-dir 'tempdir' '--option-name optionValue'` == got
+        @test `helm template group/repository --version 1.0.0 --output-dir tempdir --option-name optionValue` == got
     end
 
     @testset "make_kustomize_paths" begin
@@ -112,6 +112,40 @@ using Test
         filepath = joinpath(path, "kustomization.yaml")
         @test isfile(filepath)
         @test read("testkustomization2.yaml") == read(filepath)
+        rm(path, force=true, recursive=true)
+    end
+
+    @testset "cp_kustomize" begin
+        path = "testcpkustomize"
+        rm(path, force=true, recursive=true)
+
+        config = Config()
+        config.templatedir = joinpath(path, "templatedir")
+        mkpath(joinpath(config.templatedir, "subdir"))
+        config.outdir = joinpath(path, "outdir")
+
+        setconfig(config)
+        cp_kustomize()
+        @test isdir(config.templatedir)
+        @test isdir(joinpath(config.outdir, "subdir"))
+
+        config.isforce = true
+        mkpath(joinpath(config.outdir, "subdir2"))
+
+        setconfig(config)
+        cp_kustomize()
+        @test isdir(joinpath(config.outdir, "subdir"))
+        @test !isdir(joinpath(config.outdir, "subdir2"))
+
+        rm(path, force=true, recursive=true)
+
+        mkpath(joinpath(config.templatedir, "subdir"))
+        config.isbase = true
+
+        setconfig(config)
+        cp_kustomize()
+        @test isdir(joinpath(config.outdir, "base", "subdir"))
+
         rm(path, force=true, recursive=true)
     end
 end
