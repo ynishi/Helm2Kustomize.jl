@@ -1,5 +1,5 @@
-using Pkg;
-Pkg.activate(".");
+# using Pkg;
+# Pkg.add(url="https://github.com/ynishi/Helm2Kustomize.jl");
 
 using Comonicon
 using Helm2Kustomize
