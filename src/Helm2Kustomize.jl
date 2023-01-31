@@ -194,7 +194,7 @@ function helm2kustomize(
         end
         cd(rundir)
         cp_kustomize()
-        @info "run, kustomize build $(CONFIG.outdir) | kubectl appy -f -"
+        @info "run, kustomize build $(CONFIG.outdir) | kubectl apply -f -"
         if !CONFIG.iskeep
             down()
         end
